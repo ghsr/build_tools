@@ -14,7 +14,6 @@ PATCHES=(
 'packages/inputmethods/LatinIME packages_inputmethods_LatinIME.patch'
 'packages/services/Telephony	packages_services_Telephony.patch'
 'system/core			system_core.patch'
-'vendor/cm			vendor_cm.patch'
 )
 
 while [ "x${PATCHES[COUNT]}" != "x" ]

@@ -1,7 +1,7 @@
-From 6604681b5f65838e3a7e25e53e10b7f6b4883f8e Mon Sep 17 00:00:00 2001
+From e5b0c51fb87e3cf0b47ebf80d51382f756d462dc Mon Sep 17 00:00:00 2001
 From: Ricardo Cerqueira <cyanogenmod@cerqueira.org>
 Date: Tue, 6 Aug 2013 16:11:06 +0100
-Subject: [PATCH 1/6] libgui: Bring back support for mHeap-based screenshots
+Subject: [PATCH 1/8] libgui: Bring back support for mHeap-based screenshots
 
 Older graphics libraries throw a hissy fit when trying to lock
 buffers for Surface-based screenshots, on at least Tegra2/3 and
@@ -26,7 +26,7 @@ Change-Id: I7db955e2cdd120018e349c14290e975788e70ed3
  8 files changed, 282 insertions(+), 4 deletions(-)
 
 diff --git a/include/gui/ISurfaceComposer.h b/include/gui/ISurfaceComposer.h
-index 90c4dc363..725575a7e 100644
+index 90c4dc3..725575a 100644
 --- a/include/gui/ISurfaceComposer.h
 +++ b/include/gui/ISurfaceComposer.h
 @@ -157,6 +157,18 @@ public:
@@ -59,7 +59,7 @@ index 90c4dc363..725575a7e 100644
          GET_ACTIVE_CONFIG,
          SET_ACTIVE_CONFIG,
 diff --git a/include/gui/SurfaceComposerClient.h b/include/gui/SurfaceComposerClient.h
-index bcf488004..2f4922c3f 100644
+index bcf4880..2f4922c 100644
 --- a/include/gui/SurfaceComposerClient.h
 +++ b/include/gui/SurfaceComposerClient.h
 @@ -41,6 +41,9 @@ namespace android {
@@ -83,10 +83,10 @@ index bcf488004..2f4922c3f 100644
      mutable sp<IGraphicBufferProducer> mProducer;
      CpuConsumer::LockedBuffer mBuffer;
 diff --git a/libs/gui/Android.mk b/libs/gui/Android.mk
-index dff6a37dd..4a3c2c437 100644
+index 0889aaf..d1b415e 100644
 --- a/libs/gui/Android.mk
 +++ b/libs/gui/Android.mk
-@@ -85,6 +85,10 @@ LOCAL_SHARED_LIBRARIES := \
+@@ -87,6 +87,10 @@ LOCAL_SHARED_LIBRARIES := \
  	liblog
  
  
@@ -98,7 +98,7 @@ index dff6a37dd..4a3c2c437 100644
  
  ifeq ($(TARGET_BOARD_PLATFORM), tegra)
 diff --git a/libs/gui/ISurfaceComposer.cpp b/libs/gui/ISurfaceComposer.cpp
-index 2e101b386..5c5caa562 100644
+index 2e101b3..5c5caa5 100644
 --- a/libs/gui/ISurfaceComposer.cpp
 +++ b/libs/gui/ISurfaceComposer.cpp
 @@ -101,6 +101,33 @@ public:
@@ -169,7 +169,7 @@ index 2e101b386..5c5caa562 100644
              CHECK_INTERFACE(ISurfaceComposer, data, reply);
              sp<IBinder> display = data.readStrongBinder();
 diff --git a/libs/gui/SurfaceComposerClient.cpp b/libs/gui/SurfaceComposerClient.cpp
-index a4bf2de95..f5218f5dd 100644
+index a4bf2de..f5218f5 100644
 --- a/libs/gui/SurfaceComposerClient.cpp
 +++ b/libs/gui/SurfaceComposerClient.cpp
 @@ -922,6 +922,14 @@ status_t ScreenshotClient::capture(
@@ -234,7 +234,7 @@ index a4bf2de95..f5218f5dd 100644
  
  void const* ScreenshotClient::getPixels() const {
 diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
-index 3591bcaa4..6820b8147 100644
+index 18cc946..2df45c3 100644
 --- a/services/surfaceflinger/Android.mk
 +++ b/services/surfaceflinger/Android.mk
 @@ -90,6 +90,10 @@ ifeq ($(TARGET_HAS_HH_VSYNC_ISSUE),true)
@@ -249,7 +249,7 @@ index 3591bcaa4..6820b8147 100644
  #
  #   - The phase offset between hardware vsync and when apps are woken up by the
 diff --git a/services/surfaceflinger/SurfaceFlinger.h b/services/surfaceflinger/SurfaceFlinger.h
-index 97b727bd1..db1ef03e9 100644
+index 900383d..01475e1 100644
 --- a/services/surfaceflinger/SurfaceFlinger.h
 +++ b/services/surfaceflinger/SurfaceFlinger.h
 @@ -229,6 +229,13 @@ private:
@@ -283,7 +283,7 @@ index 97b727bd1..db1ef03e9 100644
       * EGL
       */
 diff --git a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
-index cb6fc2f61..39c3b9f9a 100644
+index e0b2d55..9deb50b 100644
 --- a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 @@ -29,6 +29,9 @@
@@ -296,7 +296,7 @@ index cb6fc2f61..39c3b9f9a 100644
  
  #include <cutils/iosched_policy.h>
  #include <cutils/log.h>
-@@ -3182,12 +3185,18 @@ status_t SurfaceFlinger::onTransact(
+@@ -3236,12 +3239,18 @@ status_t SurfaceFlinger::onTransact(
              break;
          }
          case CAPTURE_SCREEN:
@@ -315,7 +315,7 @@ index cb6fc2f61..39c3b9f9a 100644
                      !PermissionCache::checkPermission(sReadFramebuffer, pid, uid)) {
                  ALOGE("Permission Denial: "
                          "can't read framebuffer pid=%d, uid=%d", pid, uid);
-@@ -3535,10 +3544,19 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
+@@ -3610,10 +3619,19 @@ status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
              Mutex::Autolock _l(flinger->mStateLock);
              sp<const DisplayDevice> hw(flinger->getDisplayDevice(display));
              bool useReadPixels = this->useReadPixels && !flinger->mGpuToCpuSupported;
@@ -339,7 +339,7 @@ index cb6fc2f61..39c3b9f9a 100644
              static_cast<GraphicProducerWrapper*>(IInterface::asBinder(producer).get())->exit(result);
              return true;
          }
-@@ -3880,6 +3898,139 @@ void SurfaceFlinger::drawWormHoleIfRequired(HWComposer::LayerListIterator& /*cur
+@@ -3955,6 +3973,139 @@ void SurfaceFlinger::drawWormHoleIfRequired(HWComposer::LayerListIterator& /*cur
      drawWormhole(hw, region);
  }
  
@@ -479,7 +479,7 @@ index cb6fc2f61..39c3b9f9a 100644
  // ---------------------------------------------------------------------------
  
  SurfaceFlinger::LayerVector::LayerVector() {
-@@ -3937,6 +4088,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(
+@@ -4012,6 +4163,7 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(
  }; // namespace android
  
  
@@ -487,19 +487,225 @@ index cb6fc2f61..39c3b9f9a 100644
  #if defined(__gl_h_)
  #error "don't include gl/gl.h in this file"
  #endif
-@@ -3944,3 +4096,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(
+@@ -4019,3 +4171,4 @@ SurfaceFlinger::DisplayDeviceState::DisplayDeviceState(
  #if defined(__gl2_h_)
  #error "don't include gl2/gl2.h in this file"
  #endif
 +#endif
 -- 
-2.11.0
+2.7.4
 
 
-From eff07936d14b3aa15c2bb3227dc388fe45a031db Mon Sep 17 00:00:00 2001
+From cc6ff705bdeb06e3949673ff3f1c756b6ea02a8f Mon Sep 17 00:00:00 2001
+From: corphish <d97.avinaba@gmail.com>
+Date: Fri, 16 Sep 2016 22:21:08 +0530
+Subject: [PATCH 2/8] surfaceflinger: Use different function names for legacy
+ captureScreen method
+
+With newer API, captureScreen parameters got changed,
+overriding it may actually conflict somewhere else in the source. Solution:
+Use a different name for our functions.
+
+Signed-off-by: corphish <d97.avinaba@gmail.com>
+---
+ include/gui/ISurfaceComposer.h                  | 2 +-
+ libs/gui/ISurfaceComposer.cpp                   | 4 ++--
+ libs/gui/SurfaceComposerClient.cpp              | 2 +-
+ services/surfaceflinger/SurfaceFlinger.h        | 2 +-
+ services/surfaceflinger/SurfaceFlinger_hwc1.cpp | 2 +-
+ 5 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/include/gui/ISurfaceComposer.h b/include/gui/ISurfaceComposer.h
+index 725575a..9b32836 100644
+--- a/include/gui/ISurfaceComposer.h
++++ b/include/gui/ISurfaceComposer.h
+@@ -161,7 +161,7 @@ public:
+     /* Capture the specified screen. requires READ_FRAME_BUFFER permission
+      * This function will fail if there is a secure window on screen.
+      */
+-    virtual status_t captureScreen(const sp<IBinder>& display, sp<IMemoryHeap>* heap,
++    virtual status_t captureScreenLegacy(const sp<IBinder>& display, sp<IMemoryHeap>* heap,
+             uint32_t* width, uint32_t* height,
+             Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
+             uint32_t minLayerZ, uint32_t maxLayerZ,
+diff --git a/libs/gui/ISurfaceComposer.cpp b/libs/gui/ISurfaceComposer.cpp
+index 5c5caa5..062573b 100644
+--- a/libs/gui/ISurfaceComposer.cpp
++++ b/libs/gui/ISurfaceComposer.cpp
+@@ -102,7 +102,7 @@ public:
+     }
+ 
+ #ifdef USE_MHEAP_SCREENSHOT
+-    virtual status_t captureScreen(
++    virtual status_t captureScreenLegacy(
+             const sp<IBinder>& display, sp<IMemoryHeap>* heap,
+             uint32_t* width, uint32_t* height,
+             Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
+@@ -493,7 +493,7 @@ status_t BnSurfaceComposer::onTransact(
+             sp<IMemoryHeap> heap;
+             uint32_t w, h;
+ 
+-            status_t res = captureScreen(display, &heap, &w, &h,
++            status_t res = captureScreenLegacy(display, &heap, &w, &h,
+                     sourceCrop, reqWidth, reqHeight, minLayerZ, maxLayerZ,
+                     useIdentityTransform,
+                     static_cast<ISurfaceComposer::Rotation>(rotation));
+diff --git a/libs/gui/SurfaceComposerClient.cpp b/libs/gui/SurfaceComposerClient.cpp
+index f5218f5..9fa675c 100644
+--- a/libs/gui/SurfaceComposerClient.cpp
++++ b/libs/gui/SurfaceComposerClient.cpp
+@@ -963,7 +963,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
+ #ifdef USE_MHEAP_SCREENSHOT
+     int ret = -1;
+     mHeap = 0;
+-    ret = s->captureScreen(display, &mHeap, &mBuffer.width, &mBuffer.height, sourceCrop,
++    ret = s->captureScreenLegacy(display, &mHeap, &mBuffer.width, &mBuffer.height, sourceCrop,
+             reqWidth, reqHeight, minLayerZ, maxLayerZ, useIdentityTransform,
+             static_cast<ISurfaceComposer::Rotation>(rotation));
+ 
+diff --git a/services/surfaceflinger/SurfaceFlinger.h b/services/surfaceflinger/SurfaceFlinger.h
+index 01475e1..059e429 100644
+--- a/services/surfaceflinger/SurfaceFlinger.h
++++ b/services/surfaceflinger/SurfaceFlinger.h
+@@ -230,7 +230,7 @@ private:
+             bool useIdentityTransform, ISurfaceComposer::Rotation rotation,
+             bool isCpuConsumer);
+ #ifdef USE_MHEAP_SCREENSHOT
+-    virtual status_t captureScreen(const sp<IBinder>& display, sp<IMemoryHeap>* heap,
++    virtual status_t captureScreenLegacy(const sp<IBinder>& display, sp<IMemoryHeap>* heap,
+             uint32_t* width, uint32_t* height,
+             Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
+             uint32_t minLayerZ, uint32_t maxLayerZ,
+diff --git a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
+index 9deb50b..7ea7f28 100644
+--- a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
++++ b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
+@@ -4022,7 +4022,7 @@ status_t SurfaceFlinger::captureScreenImplCpuConsumerLocked(
+     return result;
+ }
+ 
+-status_t SurfaceFlinger::captureScreen(const sp<IBinder>& display,
++status_t SurfaceFlinger::captureScreenLegacy(const sp<IBinder>& display,
+         sp<IMemoryHeap>* heap, uint32_t* outWidth, uint32_t* outHeight,
+         Rect sourceCrop, uint32_t reqWidth, uint32_t reqHeight,
+         uint32_t minLayerZ, uint32_t maxLayerZ,
+-- 
+2.7.4
+
+
+From b5af229001bdcc23f71b3dde300497b3632505c9 Mon Sep 17 00:00:00 2001
+From: ghsr <ghsr92@yandex.ru>
+Date: Sat, 18 Nov 2017 12:56:13 +0600
+Subject: [PATCH 3/8] BufferQueueProducer: CAPRI_HWC: disable
+ connect/disconnect methods
+
+---
+ libs/gui/BufferQueueProducer.cpp | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/libs/gui/BufferQueueProducer.cpp b/libs/gui/BufferQueueProducer.cpp
+index ff85eb5..32852f2 100644
+--- a/libs/gui/BufferQueueProducer.cpp
++++ b/libs/gui/BufferQueueProducer.cpp
+@@ -66,10 +66,12 @@ status_t BufferQueueProducer::requestBuffer(int slot, sp<GraphicBuffer>* buf) {
+         return NO_INIT;
+     }
+ 
++#ifndef CAPRI_HWC
+     if (mCore->mConnectedApi == BufferQueueCore::NO_CONNECTED_API) {
+         BQ_LOGE("requestBuffer: BufferQueue has no connected producer");
+         return NO_INIT;
+     }
++#endif
+ 
+     if (slot < 0 || slot >= BufferQueueDefs::NUM_BUFFER_SLOTS) {
+         BQ_LOGE("requestBuffer: slot index %d out of range [0, %d)",
+@@ -354,10 +356,12 @@ status_t BufferQueueProducer::dequeueBuffer(int *outSlot,
+             return NO_INIT;
+         }
+ 
++#ifndef CAPRI_HWC
+         if (mCore->mConnectedApi == BufferQueueCore::NO_CONNECTED_API) {
+             BQ_LOGE("dequeueBuffer: BufferQueue has no connected producer");
+             return NO_INIT;
+         }
++#endif
+     } // Autolock scope
+ 
+     BQ_LOGV("dequeueBuffer: w=%u h=%u format=%#x, usage=%#x", width, height,
+@@ -569,10 +573,12 @@ status_t BufferQueueProducer::detachBuffer(int slot) {
+             return NO_INIT;
+         }
+ 
++#ifndef CAPRI_HWC
+         if (mCore->mConnectedApi == BufferQueueCore::NO_CONNECTED_API) {
+             BQ_LOGE("detachBuffer: BufferQueue has no connected producer");
+             return NO_INIT;
+         }
++#endif
+ 
+         if (mCore->mSharedBufferMode || mCore->mSharedBufferSlot == slot) {
+             BQ_LOGE("detachBuffer: cannot detach a buffer in shared buffer mode");
+@@ -628,10 +634,12 @@ status_t BufferQueueProducer::detachNextBuffer(sp<GraphicBuffer>* outBuffer,
+         return NO_INIT;
+     }
+ 
++#ifndef CAPRI_HWC
+     if (mCore->mConnectedApi == BufferQueueCore::NO_CONNECTED_API) {
+         BQ_LOGE("detachNextBuffer: BufferQueue has no connected producer");
+         return NO_INIT;
+     }
++#endif
+ 
+     if (mCore->mSharedBufferMode) {
+         BQ_LOGE("detachNextBuffer: cannot detach a buffer in shared buffer "
+@@ -678,10 +686,12 @@ status_t BufferQueueProducer::attachBuffer(int* outSlot,
+         return NO_INIT;
+     }
+ 
++#ifndef CAPRI_HWC
+     if (mCore->mConnectedApi == BufferQueueCore::NO_CONNECTED_API) {
+         BQ_LOGE("attachBuffer: BufferQueue has no connected producer");
+         return NO_INIT;
+     }
++#endif
+ 
+     if (mCore->mSharedBufferMode) {
+         BQ_LOGE("attachBuffer: cannot attach a buffer in shared buffer mode");
+@@ -772,10 +782,12 @@ status_t BufferQueueProducer::queueBuffer(int slot,
+             return NO_INIT;
+         }
+ 
++#ifndef CAPRI_HWC
+         if (mCore->mConnectedApi == BufferQueueCore::NO_CONNECTED_API) {
+             BQ_LOGE("queueBuffer: BufferQueue has no connected producer");
+             return NO_INIT;
+         }
++#endif
+ 
+         if (slot < 0 || slot >= BufferQueueDefs::NUM_BUFFER_SLOTS) {
+             BQ_LOGE("queueBuffer: slot index %d out of range [0, %d)",
+@@ -969,10 +981,12 @@ status_t BufferQueueProducer::cancelBuffer(int slot, const sp<Fence>& fence) {
+         return NO_INIT;
+     }
+ 
++#ifndef CAPRI_HWC
+     if (mCore->mConnectedApi == BufferQueueCore::NO_CONNECTED_API) {
+         BQ_LOGE("cancelBuffer: BufferQueue has no connected producer");
+         return NO_INIT;
+     }
++#endif
+ 
+     if (mCore->mSharedBufferMode) {
+         BQ_LOGE("cancelBuffer: cannot cancel a buffer in shared buffer mode");
+-- 
+2.7.4
+
+
+From 70db9faf672259d4a0eb76e59da057b5aa46c68a Mon Sep 17 00:00:00 2001
 From: Pawit Pornkitprasan <p.pawit@gmail.com>
 Date: Thu, 14 Nov 2013 15:19:46 +0700
-Subject: [PATCH 2/6] binder: add compat symbol
+Subject: [PATCH 4/8] binder: add compat symbol
 
 Required for older Samsung libtvout
 
@@ -509,10 +715,10 @@ Change-Id: Ib18d2513570382432d49f302ab041230650372f2
  1 file changed, 4 insertions(+)
 
 diff --git a/libs/binder/IPCThreadState.cpp b/libs/binder/IPCThreadState.cpp
-index d90798f51..d205b57b5 100644
+index 3efebf7..505570a 100644
 --- a/libs/binder/IPCThreadState.cpp
 +++ b/libs/binder/IPCThreadState.cpp
-@@ -351,6 +351,10 @@ status_t IPCThreadState::clearLastError()
+@@ -353,6 +353,10 @@ status_t IPCThreadState::clearLastError()
      return err;
  }
  
@@ -524,13 +730,13 @@ index d90798f51..d205b57b5 100644
  {
      return mCallingPid;
 -- 
-2.11.0
+2.7.4
 
 
-From a843e3bf1f1fb4a7f16bf4b0ed3e270982c4019c Mon Sep 17 00:00:00 2001
+From 16e54c7c9db33748c6205c893267e134c1fa8d1d Mon Sep 17 00:00:00 2001
 From: Pawit Pornkitprasan <p.pawit@gmail.com>
 Date: Tue, 10 Dec 2013 19:38:17 +0700
-Subject: [PATCH 3/6] binder: add compat symbols
+Subject: [PATCH 5/8] binder: add compat symbols
 
 Required for libtvservice_binder.so on I9082
 
@@ -540,7 +746,7 @@ Change-Id: I059e92f19e4c5a911d38faa9c4df549c75c90761
  1 file changed, 12 insertions(+)
 
 diff --git a/libs/binder/Parcel.cpp b/libs/binder/Parcel.cpp
-index f0761efe8..c788f40a7 100644
+index 52caa24..5de642f 100644
 --- a/libs/binder/Parcel.cpp
 +++ b/libs/binder/Parcel.cpp
 @@ -1267,6 +1267,12 @@ status_t Parcel::writeDupImmutableBlobFileDescriptor(int fd)
@@ -570,23 +776,23 @@ index f0761efe8..c788f40a7 100644
  {
      // size
 -- 
-2.11.0
+2.7.4
 
 
-From a73250386ca2e8ed2265130d7eed1a09908d0e5b Mon Sep 17 00:00:00 2001
+From 8939ff3547d059ddaf183b362de785fd2cea1815 Mon Sep 17 00:00:00 2001
 From: Pawit Pornkitprasan <p.pawit@gmail.com>
 Date: Mon, 16 Dec 2013 15:45:42 +0700
-Subject: [PATCH 4/6] sf: CAPRI_HWC: fix rotation artifact
+Subject: [PATCH 6/8] sf: CAPRI_HWC: fix rotation artifact
 
 ---
  services/surfaceflinger/SurfaceFlinger_hwc1.cpp | 5 +++++
  1 file changed, 5 insertions(+)
 
 diff --git a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
-index 39c3b9f9a..9f3555813 100644
+index 7ea7f28..c97bbdf 100644
 --- a/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
 +++ b/services/surfaceflinger/SurfaceFlinger_hwc1.cpp
-@@ -3672,6 +3672,11 @@ status_t SurfaceFlinger::captureScreenImplLocked(
+@@ -3747,6 +3747,11 @@ status_t SurfaceFlinger::captureScreenImplLocked(
  {
      ATRACE_CALL();
  
@@ -599,13 +805,13 @@ index 39c3b9f9a..9f3555813 100644
      uint32_t hw_w = hw->getWidth();
      uint32_t hw_h = hw->getHeight();
 -- 
-2.11.0
+2.7.4
 
 
-From 3d61577baa421c3a25ba000b7289c94d34904887 Mon Sep 17 00:00:00 2001
+From 7b631e848be1b3f1c37af6898a63e394d5efa80b Mon Sep 17 00:00:00 2001
 From: Pawit Pornkitprasan <p.pawit@gmail.com>
 Date: Mon, 15 Dec 2014 23:12:44 +0700
-Subject: [PATCH 5/6] SurfaceComposerClient: don't block RGBA_8888 for
+Subject: [PATCH 7/8] SurfaceComposerClient: don't block RGBA_8888 for
  screenshot on CAPRI_HWC
 
 Works here and required for ColorFade animation
@@ -616,7 +822,7 @@ Change-Id: Ie7d549bb63e11380d7efcab27b7e4d9f3eb2a1fe
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/libs/gui/SurfaceComposerClient.cpp b/libs/gui/SurfaceComposerClient.cpp
-index f5218f5dd..e8f6c0a5a 100644
+index 9fa675c..e8b5aef 100644
 --- a/libs/gui/SurfaceComposerClient.cpp
 +++ b/libs/gui/SurfaceComposerClient.cpp
 @@ -922,7 +922,7 @@ status_t ScreenshotClient::capture(
@@ -629,20 +835,20 @@ index f5218f5dd..e8f6c0a5a 100644
      producer->query(NATIVE_WINDOW_FORMAT,&format);
      if (format == PIXEL_FORMAT_RGBA_8888) {
 -- 
-2.11.0
+2.7.4
 
 
-From cf21efaad732c7ccc8b36ee4c5467bcf0fe8e4af Mon Sep 17 00:00:00 2001
+From afba76166beac37b9ad222c2c62d2a65890140e6 Mon Sep 17 00:00:00 2001
 From: Pawit Pornkitprasan <p.pawit@gmail.com>
 Date: Sun, 11 Oct 2015 15:28:51 +0700
-Subject: [PATCH 6/6] binder: add compat symbol for RIL
+Subject: [PATCH 8/8] binder: add compat symbol for RIL
 
 ---
  libs/binder/Parcel.cpp | 6 ++++++
  1 file changed, 6 insertions(+)
 
 diff --git a/libs/binder/Parcel.cpp b/libs/binder/Parcel.cpp
-index c788f40a7..b22e98254 100644
+index 5de642f..eb9c566 100644
 --- a/libs/binder/Parcel.cpp
 +++ b/libs/binder/Parcel.cpp
 @@ -1082,6 +1082,12 @@ status_t Parcel::writeString16(const String16& str)
@@ -659,5 +865,5 @@ index c788f40a7..b22e98254 100644
  {
      if (str == NULL) return writeInt32(-1);
 -- 
-2.11.0
+2.7.4
 

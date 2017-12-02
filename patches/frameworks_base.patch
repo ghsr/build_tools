@@ -1,7 +1,7 @@
-From 7d3dbde64a1645b5edfcf845dc605e4a54cb06a2 Mon Sep 17 00:00:00 2001
+From d9dc4d4521f4b614dd761e652904516cd2d904d7 Mon Sep 17 00:00:00 2001
 From: Pawit Pornkitprasan <p.pawit@gmail.com>
 Date: Sat, 15 Nov 2014 14:50:29 +0700
-Subject: [PATCH 1/5] TelephonyManager: set properties in Broadcom-style as
+Subject: [PATCH 1/4] TelephonyManager: set properties in Broadcom-style as
  expected by RIL
 
 For i9082 and i9152
@@ -12,10 +12,10 @@ Change-Id: I475fdd164b3316720387fefb14a3e12fbc262b39
  1 file changed, 20 insertions(+), 43 deletions(-)
 
 diff --git a/telephony/java/android/telephony/TelephonyManager.java b/telephony/java/android/telephony/TelephonyManager.java
-index b6700d87640..17fb918603c 100644
+index 372b127..15f2adb 100644
 --- a/telephony/java/android/telephony/TelephonyManager.java
 +++ b/telephony/java/android/telephony/TelephonyManager.java
-@@ -3743,49 +3743,19 @@ public class TelephonyManager {
+@@ -3744,49 +3744,19 @@ public class TelephonyManager {
       * @hide
       */
      public static void setTelephonyProperty(int phoneId, String property, String value) {
@@ -70,7 +70,7 @@ index b6700d87640..17fb918603c 100644
      }
  
      /**
-@@ -3882,15 +3852,22 @@ public class TelephonyManager {
+@@ -3883,15 +3853,22 @@ public class TelephonyManager {
       * @hide
       */
      public static String getTelephonyProperty(int phoneId, String property, String defaultVal) {
@@ -102,13 +102,13 @@ index b6700d87640..17fb918603c 100644
  
      /** @hide */
 -- 
-2.11.0
+2.7.4
 
 
-From 8dc8e4773f061eb10c91f5fba489b8a411c392c0 Mon Sep 17 00:00:00 2001
+From e8546d7002a38dc8793265a030c693faebacd329 Mon Sep 17 00:00:00 2001
 From: Pawit Pornkitprasan <p.pawit@gmail.com>
 Date: Sat, 15 Nov 2014 14:50:29 +0700
-Subject: [PATCH 2/5] Camera: HACK: i9082: API hacks
+Subject: [PATCH 2/4] Camera: HACK: i9082: API hacks
 
 CTS 5.0 requires the presence of an auto mode, so applications
 may try to use auto without checking.
@@ -123,7 +123,7 @@ Change-Id: I929feffa4f79c69e9d7be7d1acacb3c228280bfe
  3 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/core/java/android/hardware/camera2/legacy/LegacyExceptionUtils.java b/core/java/android/hardware/camera2/legacy/LegacyExceptionUtils.java
-index 93d6001c08d..5d7400a4873 100644
+index 93d6001..5d7400a 100644
 --- a/core/java/android/hardware/camera2/legacy/LegacyExceptionUtils.java
 +++ b/core/java/android/hardware/camera2/legacy/LegacyExceptionUtils.java
 @@ -116,7 +116,7 @@ public class LegacyExceptionUtils {
@@ -136,7 +136,7 @@ index 93d6001c08d..5d7400a4873 100644
          } else if (errorFlag == -EOPNOTSUPP) {
              errorCode = ICameraService.ERROR_DEPRECATED_HAL;
 diff --git a/core/java/android/hardware/camera2/legacy/LegacyMetadataMapper.java b/core/java/android/hardware/camera2/legacy/LegacyMetadataMapper.java
-index bb0a0427990..2fd464e06da 100644
+index bb0a042..2fd464e 100644
 --- a/core/java/android/hardware/camera2/legacy/LegacyMetadataMapper.java
 +++ b/core/java/android/hardware/camera2/legacy/LegacyMetadataMapper.java
 @@ -1151,7 +1151,7 @@ public class LegacyMetadataMapper {
@@ -149,7 +149,7 @@ index bb0a0427990..2fd464e06da 100644
              case Camera.Parameters.ANTIBANDING_60HZ: {
                  return CONTROL_AE_ANTIBANDING_MODE_60HZ;
 diff --git a/core/java/android/hardware/camera2/legacy/LegacyRequestMapper.java b/core/java/android/hardware/camera2/legacy/LegacyRequestMapper.java
-index 2e06d5fb3b6..1a3db4e3ccc 100644
+index 2e06d5f..1a3db4e 100644
 --- a/core/java/android/hardware/camera2/legacy/LegacyRequestMapper.java
 +++ b/core/java/android/hardware/camera2/legacy/LegacyRequestMapper.java
 @@ -620,7 +620,7 @@ public class LegacyRequestMapper {
@@ -162,13 +162,13 @@ index 2e06d5fb3b6..1a3db4e3ccc 100644
              default: {
                  return null;
 -- 
-2.11.0
+2.7.4
 
 
-From 0387263883603693c4480810bc692270008b4240 Mon Sep 17 00:00:00 2001
+From 66efc6d4199ab83238032a79414d96855a3b06b9 Mon Sep 17 00:00:00 2001
 From: Alex Sarraf <asarraf@codeaurora.org>
 Date: Wed, 15 Jul 2015 11:20:17 -0700
-Subject: [PATCH 3/5] KeyEvent: Add support for Home key wakeup
+Subject: [PATCH 3/4] KeyEvent: Add support for Home key wakeup
 
 Add Home key to list of wakeable buttons.
 
@@ -178,7 +178,7 @@ Change-Id: Ic452e4bf262301527f83d6dbd9bbaad7aa20a13e
  1 file changed, 1 insertion(+)
 
 diff --git a/core/java/android/view/KeyEvent.java b/core/java/android/view/KeyEvent.java
-index 934c6b23bff..5536e0e8802 100644
+index 934c6b2..5536e0e 100644
 --- a/core/java/android/view/KeyEvent.java
 +++ b/core/java/android/view/KeyEvent.java
 @@ -1868,6 +1868,7 @@ public class KeyEvent extends InputEvent implements Parcelable {
@@ -190,63 +190,13 @@ index 934c6b23bff..5536e0e8802 100644
              case KeyEvent.KEYCODE_PAIRING:
              case KeyEvent.KEYCODE_STEM_1:
 -- 
-2.11.0
+2.7.4
 
 
-From 249922023d0f959c1d98a24b445faf10b1c5c764 Mon Sep 17 00:00:00 2001
-From: Pawit Pornkitprasan <p.pawit@gmail.com>
-Date: Sat, 14 Mar 2015 22:53:50 +0700
-Subject: [PATCH 4/5] PowerManagerService: only turn on button light when any
- button is pressed
-
-This more closely emulates stock Samsung behavior
-
-Change-Id: I6b15c45b713bcbc290a1026805c46109060f9990
----
- .../core/java/com/android/server/power/PowerManagerService.java   | 8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
-
-diff --git a/services/core/java/com/android/server/power/PowerManagerService.java b/services/core/java/com/android/server/power/PowerManagerService.java
-index 40a014f4ae1..655ccb4d793 100644
---- a/services/core/java/com/android/server/power/PowerManagerService.java
-+++ b/services/core/java/com/android/server/power/PowerManagerService.java
-@@ -272,6 +272,7 @@ public final class PowerManagerService extends SystemService
-     // Timestamp of the last call to user activity.
-     private long mLastUserActivityTime;
-     private long mLastUserActivityTimeNoChangeLights;
-+    private long mLastButtonActivityTime;
- 
-     // Timestamp of last interactive power hint.
-     private long mLastInteractivePowerHintTime;
-@@ -1291,6 +1292,11 @@ public final class PowerManagerService extends SystemService
-                     return true;
-                 }
-             } else {
-+                if (eventTime > mLastButtonActivityTime && (event & PowerManager.USER_ACTIVITY_EVENT_BUTTON) != 0) {
-+                    mLastButtonActivityTime = eventTime;
-+                    mDirty |= DIRTY_USER_ACTIVITY;
-+                }
-+
-                 if (eventTime > mLastUserActivityTime) {
-                     mLastUserActivityTime = eventTime;
-                     mDirty |= DIRTY_USER_ACTIVITY;
-@@ -1851,7 +1857,7 @@ public final class PowerManagerService extends SystemService
-                             mKeyboardLight.setBrightness(mKeyboardVisible ?
-                                     keyboardBrightness : 0);
-                             if (mButtonTimeout != 0
--                                    && now > mLastUserActivityTime + mButtonTimeout) {
-+                                    && now > mLastButtonActivityTime + mButtonTimeout) {
-                                 mButtonsLight.setBrightness(0);
-                             } else {
-                                 if (!mProximityPositive) {
--- 
-2.11.0
-
-
-From 2466a1cc0c32b363f5c43e845557caa4021cc584 Mon Sep 17 00:00:00 2001
+From cc500fe3b0963a226d6d8eddb094b807bf3e867c Mon Sep 17 00:00:00 2001
 From: timduru <github@timduru.org>
 Date: Sat, 10 Sep 2016 11:51:15 +0200
-Subject: [PATCH 5/5] prevent MtpHost from crashing
+Subject: [PATCH 4/4] prevent MtpHost from crashing
 
 Change-Id: Id5235f8727668af52188c3263bca0714f1340854
 ---
@@ -256,7 +206,7 @@ Change-Id: Id5235f8727668af52188c3263bca0714f1340854
  3 files changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/core/java/android/os/storage/IMountService.java b/core/java/android/os/storage/IMountService.java
-index 9f4b05cb4d4..6f6b559bbc0 100644
+index 9f4b05c..6f6b559 100644
 --- a/core/java/android/os/storage/IMountService.java
 +++ b/core/java/android/os/storage/IMountService.java
 @@ -2179,8 +2179,10 @@ public interface IMountService extends IInterface {
@@ -273,10 +223,10 @@ index 9f4b05cb4d4..6f6b559bbc0 100644
                  }
              }
 diff --git a/core/java/android/os/storage/StorageManager.java b/core/java/android/os/storage/StorageManager.java
-index c5507b9841b..0c1dbf58234 100644
+index 12f703d..eb6901c 100644
 --- a/core/java/android/os/storage/StorageManager.java
 +++ b/core/java/android/os/storage/StorageManager.java
-@@ -1286,7 +1286,10 @@ public class StorageManager {
+@@ -1294,7 +1294,10 @@ public class StorageManager {
              return mMountService.mountAppFuse(name);
          } catch (RemoteException e) {
              throw e.rethrowFromSystemServer();
@@ -288,7 +238,7 @@ index c5507b9841b..0c1dbf58234 100644
  
      /// Consts to match the password types in cryptfs.h
 diff --git a/packages/MtpDocumentsProvider/src/com/android/mtp/AppFuse.java b/packages/MtpDocumentsProvider/src/com/android/mtp/AppFuse.java
-index cd78e610654..6c6bee11c5d 100644
+index cd78e61..6c6bee1 100644
 --- a/packages/MtpDocumentsProvider/src/com/android/mtp/AppFuse.java
 +++ b/packages/MtpDocumentsProvider/src/com/android/mtp/AppFuse.java
 @@ -67,8 +67,10 @@ public class AppFuse {
@@ -305,5 +255,5 @@ index cd78e610654..6c6bee11c5d 100644
  
      @VisibleForTesting
 -- 
-2.11.0
+2.7.4
 
