@@ -1,0 +1,38 @@
+From c783c93821bc4b7cff084a78e1c9d8bcfdf441dd Mon Sep 17 00:00:00 2001
+From: ghsr <ghsr92@yandex.ru>
+Date: Thu, 28 Jan 2016 02:08:47 +0600
+Subject: [PATCH] config: Remove utc flag from the date
+
+Change-Id: I058f96f2a758aebfcde5c0fcb467ad712f226143
+---
+ config/common.mk | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/config/common.mk b/config/common.mk
+index 23185f4..91f3425 100644
+--- a/config/common.mk
++++ b/config/common.mk
+@@ -330,9 +330,9 @@ ifeq ($(CM_BUILDTYPE), RELEASE)
+     endif
+ else
+     ifeq ($(CM_VERSION_MAINTENANCE),0)
+-        LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(shell date -u +%Y%m%d)-$(CM_BUILDTYPE)$(CM_EXTRAVERSION)-$(CM_BUILD)
++        LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(shell date +%Y%m%d)-$(CM_BUILDTYPE)$(CM_EXTRAVERSION)-$(CM_BUILD)
+     else
+-        LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(CM_VERSION_MAINTENANCE)-$(shell date -u +%Y%m%d)-$(CM_BUILDTYPE)$(CM_EXTRAVERSION)-$(CM_BUILD)
++        LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(CM_VERSION_MAINTENANCE)-$(shell date +%Y%m%d)-$(CM_BUILDTYPE)$(CM_EXTRAVERSION)-$(CM_BUILD)
+     endif
+ endif
+ 
+@@ -355,7 +355,7 @@ ifneq ($(PRODUCT_DEFAULT_DEV_CERTIFICATE),build/target/product/security/testkey)
+         CM_EXTRAVERSION := $(shell echo $(CM_EXTRAVERSION) | sed 's/-//')
+         TARGET_VENDOR_RELEASE_BUILD_ID := $(CM_EXTRAVERSION)
+       else
+-        TARGET_VENDOR_RELEASE_BUILD_ID := $(shell date -u +%Y%m%d)
++        TARGET_VENDOR_RELEASE_BUILD_ID := $(shell date +%Y%m%d)
+       endif
+     else
+       TARGET_VENDOR_RELEASE_BUILD_ID := $(TARGET_VENDOR_RELEASE_BUILD_ID)
+-- 
+2.11.0
+
